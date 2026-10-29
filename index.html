@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>JB Weekend Itinerary</title>
+<style>
+/* Layout: sticky day tabs over a vertical timeline; each stop is a card with place rows that link to Maps and photos. */
+:root{
+  --bg:#F2F5F3; --surface:#FFFFFF; --fg:#13292C; --muted:#5B7073; --line:#D5DFDC;
+  --accent:#0E6B6B; --accent-fg:#FFFFFF; --warm:#E4572E; --warm-soft:#FBE3DA;
+  --f-display:'Bricolage Grotesque',system-ui,sans-serif; --f-body:'DM Sans',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1B1D; --surface:#14282B; --fg:#E6F0EE; --muted:#92AAAD; --line:#25403F;
+  --accent:#4FC3BC; --accent-fg:#06201F; --warm:#FF8A63; --warm-soft:#3A2219; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1B1D; --surface:#14282B; --fg:#E6F0EE; --muted:#92AAAD; --line:#25403F;
+  --accent:#4FC3BC; --accent-fg:#06201F; --warm:#FF8A63; --warm-soft:#3A2219; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:680px;margin:0 auto}
+header{padding-top:20px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-family:var(--f-display);font-size:clamp(30px,8vw,44px);line-height:1.05;margin:6px 0 8px;text-wrap:balance;font-weight:800}
+.sub{color:var(--muted);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:8px;padding:14px 0 12px;border-bottom:1px solid var(--line);margin-top:16px}
+.tab{flex:1;min-width:0;font:inherit;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);cursor:pointer}
+.tab b{display:block;font-family:var(--f-display);font-size:15px}
+.tab span{font-size:12px;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.tab[aria-selected="true"] span{color:inherit;opacity:.85}
+.tab:focus-visible,.btn:focus-visible,.pick:focus-visible{outline:3px solid var(--warm);outline-offset:2px}
+.daytitle{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:22px 0 4px;flex-wrap:wrap}
+.daytitle h2{font-family:var(--f-display);font-size:22px;margin:0}
+.progress{font-size:13px;color:var(--muted)}
+.stops{list-style:none;margin:0;padding:0}
+.stop{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;padding-top:18px}
+.when{font-family:var(--f-display);font-weight:700;font-size:14px;line-height:1.25;padding-top:14px;font-variant-numeric:tabular-nums}
+.when small{display:block;color:var(--muted);font-family:var(--f-body);font-weight:500;font-size:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.vis{height:74px;display:flex;align-items:flex-end;justify-content:space-between;padding:10px 14px;color:#fff;
+  background:linear-gradient(135deg,var(--c1),var(--c2))}
+.vis .tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;background:rgba(0,0,0,.28);padding:3px 8px;border-radius:99px}
+.vis svg{width:34px;height:34px;opacity:.9}
+.body{padding:14px}
+.body h3{font-family:var(--f-display);font-size:18px;margin:0 0 4px;text-wrap:balance}
+.note{color:var(--muted);margin:0 0 10px;font-size:14px}
+.pickhint{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--warm);margin:0 0 8px}
+.place{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:10px 0}
+.place:first-of-type{border-top:0}
+.place.chosen{background:var(--warm-soft);margin:0 -14px;padding:10px 14px}
+.pname{font-weight:600;min-width:0;flex:1 1 150px}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.btn,.pick{font:inherit;font-size:13px;font-weight:600;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--fg);text-decoration:none;cursor:pointer}
+.btn.map{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.pick[aria-pressed="true"]{background:var(--warm);border-color:var(--warm);color:#fff}
+.opt{font-size:12px;color:var(--muted);margin-top:8px}
+.pgroup{padding-top:16px}
+.pgroup h3{font-family:var(--f-display);font-size:17px;margin:0 0 6px}
+.plist{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px 14px}
+.item{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
+.item:first-child{border-top:0}
+.item input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--accent);flex:none}
+.item span{min-width:0}
+.item input:checked+span{color:var(--muted);text-decoration:line-through}
+.item input:focus-visible{outline:3px solid var(--warm);outline-offset:2px}
+.foot{margin-top:28px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+.theme{float:right;font:inherit;font-size:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:4px 10px;cursor:pointer;margin-top:2px}
+@media (max-width:420px){.stop{grid-template-columns:52px minmax(0,1fr);gap:10px}.tab span{display:none}}
+@media (prefers-reduced-motion:no-preference){.card{transition:transform .15s}.card:active{transform:scale(.99)}}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap">
+
+<style>html{color-scheme:light}body{margin:0}</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <button class="theme" id="theme" type="button">Theme</button>
+  <div class="eyebrow">Fri 30 Oct to Sun 1 Nov 2026</div>
+  <h1>Johor Bahru, 3 days 2 nights</h1>
+  <p class="sub">Pickleball, good food, kids' play and go-karts. Tap Map to open a place in Google Maps, Photos to see pictures.</p>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Days">
+  <button class="tab" role="tab" id="t-d1" data-day="d1"><b>Day 1</b><span>Fri 30 Oct</span></button>
+  <button class="tab" role="tab" id="t-d2" data-day="d2"><b>Day 2</b><span>Sat 31 Oct</span></button>
+  <button class="tab" role="tab" id="t-d3" data-day="d3"><b>Day 3</b><span>Sun 1 Nov</span></button>
+  <button class="tab" role="tab" id="t-pack" data-day="pack"><b>Pack</b><span>Things to bring</span></button>
+</nav>
+
+<main>
+  <div class="daytitle"><h2 id="dtitle"></h2><div class="progress" id="prog"></div></div>
+  <ol class="stops" id="stops"></ol>
+</main>
+
+<div class="foot">Where an item says "pick one", tap Choose on the option the group goes with. Packing ticks and picks are saved on this device only.</div>
+</div>
+
+<script>
+var ICONS={
+  drive:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15l2-6h14l2 6v4h-3v-2H6v2H3z"/><circle cx="7.5" cy="14" r="1"/><circle cx="16.5" cy="14" r="1"/></svg>',
+  food:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10M17 3c-2 2-3 5-3 8h3v10"/></svg>',
+  play:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5 8c4 1 10 1 14 0M5 16c4-1 10-1 14 0"/></svg>',
+  stay:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6"/></svg>',
+  shop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6zM9 8a3 3 0 016 0"/></svg>',
+  kids:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="3"/><path d="M6 21v-5a6 6 0 0112 0v5M9 21v-3M15 21v-3"/></svg>',
+  race:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h14l-3 4 3 4H5"/></svg>'
+};
+var COL={
+  drive:['#46646A','#2C4448'],food:['#D9532B','#A3341A'],play:['#0E6B6B','#0A4A55'],
+  stay:['#5A6BA8','#3B4A80'],shop:['#B0467A','#7D2D58'],kids:['#E09A1B','#B26F0A'],race:['#C23B4A','#7E1F31']
+};
+var LABEL={drive:'Travel',food:'Food',play:'Play',stay:'Stay',shop:'Shop',kids:'Kids',race:'Karting'};
+
+var DAYS={
+d1:{title:'Friday 30 Oct',stops:[
+ {t:'1:30 PM',ty:'drive',h:'Depart Singapore',n:'Head to the border crossing.',p:[{n:'Woodlands Checkpoint',q:'Woodlands Checkpoint Singapore'}]},
+ {t:'2:30 PM',e:'to 3:45',ty:'food',h:'Lunch',n:'Pick one, or go free and easy.',pick:1,p:[{n:'Wang Xiang San Rou Mian',q:'Wang Xiang San Rou Mian Johor Bahru'}],opt:'Option B: free and easy'},
+ {t:'4:00 PM',e:'to 6:00',ty:'play',h:'Indoor pickleball',n:'First session of the weekend.',p:[{n:'Dewani',q:'Dewani pickleball Johor Bahru'}]},
+ {t:'6:30 PM',e:'onwards',ty:'food',h:'Group dinner',n:'Straight from pickleball. Pick one.',pick:1,p:[
+   {n:'Hei Huang BBQ Grill Fish',q:'Hei Huang BBQ Grill Fish Johor Bahru'},
+   {n:'Restoran Uncle Pou Wok (Austin)',q:'Restoran Uncle Pou Wok Austin Johor Bahru'}]},
+ {t:'After dinner',ty:'stay',h:'Villa check-in',n:'Freshen up and settle in. Add the villa address to your maps before you go.',p:[]},
+ {t:'Late night',ty:'food',h:'Supper (optional)',n:'Pick one if anyone is still hungry.',pick:1,p:[
+   {n:'Bro Lok Lok',q:'Bro Lok Lok Johor Bahru'},
+   {n:'Da Ma Kuey Teow',q:'Da Ma Kuey Teow Johor Bahru'}]}
+]},
+d2:{title:'Saturday 31 Oct',stops:[
+ {t:'10:00 AM',e:'to 11:30',ty:'food',h:'Brunch at Dudu Duck Cafe',n:'',p:[{n:'Dudu Duck Cafe',q:'Dudu Duck Cafe Johor Bahru'}]},
+ {t:'11:45 AM',ty:'kids',h:'Kids split session',n:'Choose the kids\' plan: hair salon or AEON Tebrau.',pick:1,p:[
+   {n:'XOXO Hair Salon',q:'XOXO Hair Salon Johor Bahru'},
+   {n:'AEON Tebrau City',q:'AEON Tebrau City Johor Bahru'}]},
+ {t:'12:00 PM',e:'to 3:00',ty:'kids',h:'Kids play at Stargym',n:'15-minute drop-off.',p:[{n:'Stargym (AEON Tebrau)',q:'Stargym AEON Tebrau City Johor Bahru'}]},
+ {t:'1:00 PM',e:'to 3:00',ty:'play',h:'Parents\' pickleball',n:'While the kids play.',pick:1,p:[
+   {n:'Pickle Friends',q:'Pickle Friends pickleball Johor Bahru'},
+   {n:'Stargym',q:'Stargym AEON Tebrau City Johor Bahru'}]},
+ {t:'3:00 PM',e:'to 5:00',ty:'shop',h:'Tea break and shopping',n:'AEON Tebrau or IKEA Tebrau.',p:[
+   {n:'AEON Tebrau City',q:'AEON Tebrau City Johor Bahru'},
+   {n:'IKEA Tebrau',q:'IKEA Tebrau Johor Bahru'}]},
+ {t:'5:15 PM',e:'to 5:45',ty:'stay',h:'Villa freshen up',n:'Optional, if time allows.',p:[]},
+ {t:'6:00 PM',e:'onwards',ty:'food',h:'Group dinner at Hanam BBQ',n:'',p:[{n:'Hanam BBQ @ Mount Austin',q:'Hanam BBQ Mount Austin Johor Bahru'}]},
+ {t:'After dinner',ty:'race',h:'Late-night go-karting (optional)',n:'Pick one track.',pick:1,p:[
+   {n:'Drift Master Club',q:'Drift Master Club Johor Bahru'},
+   {n:'RUD Karting',q:'RUD Karting Johor Bahru'}]}
+]},
+d3:{title:'Sunday 1 Nov',stops:[
+ {t:'10:00 AM',e:'to 11:15',ty:'food',h:'Breakfast at The Toast',n:'',p:[{n:'The Toast, Mount Austin',q:'The Toast Mount Austin Johor Bahru'}]},
+ {t:'11:30 AM',ty:'drive',h:'Depart JB for Singapore',n:'Back to the border crossing.',p:[{n:'Woodlands Checkpoint',q:'Woodlands Checkpoint Singapore'}]}
+]}};
+
+function mapUrl(q){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q)}
+function imgUrl(q){return 'https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q)}
+var picks={};
+try{picks=JSON.parse(localStorage.getItem('jb-picks')||'{}')}catch(e){}
+function savePicks(){try{localStorage.setItem('jb-picks',JSON.stringify(picks))}catch(e){}}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+var cur='d1';
+var PACK=[
+ {g:'Documents and money',i:['Passports for everyone, valid for 6+ months','Some Malaysian ringgit in cash, plus a card that works abroad','Touch \'n Go eWallet or similar for tolls and parking','If driving: VEP and RFID, Malaysian insurance cover, car registration papers','SG Arrival Card for the return trip (check the current rules)']},
+ {g:'Phone and tech',i:['Phones, chargers and a power bank','Car phone mount (if driving)','Roaming or a Malaysian eSIM, and offline Google Maps for JB','Earphones']},
+ {g:'Pickleball',i:['Paddles and balls','Indoor court shoes with non-marking soles','Sports clothes, towel and water bottle','Grip tape, spare shirt, wristbands or cap']},
+ {g:'Clothes (2 nights)',i:['2 or 3 outfits per person, and sleepwear','Underwear and socks','Light jacket for cold malls and aircon','Swimwear (only if the villa has a pool)','Comfortable walking shoes or sandals, plus closed-toe shoes for karting']},
+ {g:'Toiletries and health',i:['Toothbrush, toothpaste, face wash, deodorant','Sunscreen and insect repellent','Regular medication, plus basics: painkillers, plasters, motion sickness, stomach','Tissues and wet wipes']},
+ {g:'Kids',i:['Snacks and a water bottle','Entertainment for the drive: tablet, headphones, a small toy','Change of clothes and grip socks for Stargym','Comfort item for sleeping']},
+ {g:'Extras',i:['Small umbrella or rain jacket (sudden showers)','Foldable bag for shopping','Screenshot of this itinerary in case of no signal']}
+];
+var packed={};
+try{packed=JSON.parse(localStorage.getItem('jb-packed')||'{}')}catch(e){}
+function packCount(){
+  var t=0,n=0; PACK.forEach(function(g,gi){g.i.forEach(function(_,ii){t++; if(packed['p'+gi+'-'+ii])n++})});
+  document.getElementById('prog').textContent=n+' of '+t+' packed';
+}
+function renderPack(){
+  document.getElementById('dtitle').textContent='Things to bring';
+  var html='';
+  PACK.forEach(function(g,gi){
+    html+='<li class="pgroup"><h3>'+esc(g.g)+'</h3><div class="plist">'+g.i.map(function(t,ii){
+      var id='p'+gi+'-'+ii;
+      return '<label class="item"><input type="checkbox" id="'+id+'" data-id="'+id+'"'+(packed[id]?' checked':'')+'><span>'+esc(t)+'</span></label>';
+    }).join('')+'</div></li>';
+  });
+  document.getElementById('stops').innerHTML=html;
+  packCount();
+}
+function render(){
+  document.querySelectorAll('.tab').forEach(function(b){b.setAttribute('aria-selected',b.dataset.day===cur?'true':'false')});
+  if(cur==='pack'){renderPack();return}
+  var d=DAYS[cur];
+  document.getElementById('dtitle').textContent=d.title;
+  var decided=0,total=0,html='';
+  d.stops.forEach(function(s,i){
+    var key=cur+'-'+i, c=COL[s.ty];
+    if(s.pick&&s.p.length>1){total++; if(picks[key]!==undefined)decided++}
+    var rows=s.p.map(function(p,j){
+      var many=s.pick&&s.p.length>1, on=picks[key]===j;
+      return '<div class="place'+(on?' chosen':'')+'"><div class="pname">'+esc(p.n)+'</div><div class="acts">'+
+        '<a class="btn map" target="_blank" rel="noopener" href="'+mapUrl(p.q)+'">Map</a>'+
+        '<a class="btn" target="_blank" rel="noopener" href="'+imgUrl(p.q)+'">Photos</a>'+        (many?'<button type="button" class="pick" data-key="'+key+'" data-j="'+j+'" aria-pressed="'+on+'">'+(on?'Chosen':'Choose')+'</button>':'')+
+        '</div></div>';
+    }).join('');
+    html+='<li class="stop"><div class="when">'+esc(s.t)+(s.e?'<small>'+esc(s.e)+'</small>':'')+'</div>'+
+      '<div class="card"><div class="vis" style="--c1:'+c[0]+';--c2:'+c[1]+'"><span class="tag">'+LABEL[s.ty]+'</span>'+ICONS[s.ty]+'</div>'+
+      '<div class="body"><h3>'+esc(s.h)+'</h3>'+(s.n?'<p class="note">'+esc(s.n)+'</p>':'')+
+      (s.pick&&s.p.length>1?'<p class="pickhint">Pick one</p>':'')+rows+
+      (s.opt?'<div class="opt">'+esc(s.opt)+'</div>':'')+'</div></div></li>';
+  });
+  document.getElementById('stops').innerHTML=html;
+  document.getElementById('prog').textContent=total?(decided+' of '+total+' choices made'):'';
+}
+document.querySelector('.tabs').addEventListener('click',function(e){
+  var b=e.target.closest('.tab'); if(!b)return; cur=b.dataset.day; location.hash=cur; render(); window.scrollTo(0,0);
+});
+document.getElementById('stops').addEventListener('click',function(e){
+  var b=e.target.closest('.pick'); if(!b)return;
+  var k=b.dataset.key, j=+b.dataset.j;
+  if(picks[k]===j)delete picks[k]; else picks[k]=j;
+  savePicks(); render();
+});
+document.getElementById('stops').addEventListener('change',function(e){
+  var c=e.target.closest('input[data-id]'); if(!c)return;
+  if(c.checked)packed[c.dataset.id]=1; else delete packed[c.dataset.id];
+  try{localStorage.setItem('jb-packed',JSON.stringify(packed))}catch(err){}
+  packCount();
+});
+function fromHash(){var h=location.hash.slice(1); if(DAYS[h]||h==='pack')cur=h}
+window.addEventListener('hashchange',function(){fromHash();render()});
+document.getElementById('theme').addEventListener('click',function(){
+  var r=document.documentElement, dark=r.getAttribute('data-theme')==='dark'||(!r.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);
+  r.setAttribute('data-theme',dark?'light':'dark');
+});
+fromHash(); render();
+</script>
+
+</body>
+</html>
